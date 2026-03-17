@@ -1,0 +1,9 @@
+# Shopify web config for `shopify app dev`.
+# See: https://shopify.dev/docs/api/shopify-cli#shopify-web-toml
+
+name = "Laravel Shopify App"
+roles = ["frontend", "backend"]
+webhooks_path = "/webhooks/app/uninstalled"
+
+[commands]
+dev = "php artisan serve --port=${PORT:-8000}"

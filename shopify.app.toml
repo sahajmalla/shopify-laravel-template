@@ -1,0 +1,13 @@
+# Shopify app config. Run `shopify app dev --reset` to fill client_id and URLs.
+# See: https://shopify.dev/docs/api/shopify-cli#shopify-app-toml
+
+client_id = ""
+name = "Laravel Shopify App"
+application_url = "https://your-app-url.com"
+embedded = true
+
+[access_scopes]
+scopes = "write_products"
+
+[webhooks]
+api_version = "2025-01"

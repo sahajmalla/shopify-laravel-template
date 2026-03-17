@@ -7,6 +7,41 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## Shopify App (Laravel template)
+
+This project is set up as a **Laravel Shopify app** using the [shopify-app-php](https://github.com/Shopify/shopify-app-php) package.
+
+### Setup
+
+1. **Install Shopify CLI** (if needed):
+   ```bash
+   npm install -g @shopify/cli@latest
+   ```
+
+2. **Configure environment** – copy `.env.example` to `.env`, then run:
+   ```bash
+   php artisan key:generate
+   ```
+   When you run `shopify app dev`, the CLI will inject `SHOPIFY_API_KEY` and `SHOPIFY_API_SECRET` into your env.
+
+3. **Run the app with Shopify CLI** (first time use `--reset`):
+   ```bash
+   shopify app dev --reset
+   ```
+   This starts your Laravel server, opens a tunnel, and lets you install the app on a development store.
+
+### What’s included
+
+- **App Home** – Embedded app at `/` with request verification, token exchange/refresh, and storage in `shops` table.
+- **Patch ID Token** – Route at `/auth/patch-id-token` for resilient token handling.
+- **Webhook** – `POST /webhooks/app/uninstalled` to remove shop data on uninstall.
+- **Config** – `config/shopify.php` and `.env` vars: `SHOPIFY_API_KEY`, `SHOPIFY_API_SECRET`, `SHOPIFY_API_VERSION`.
+- **Shop model** – Stores offline (and optionally online) access tokens; use `Shop::fromShopAndMode($shop, 'offline')` and `$model->toAccessTokenArray()` for GraphQL/API calls.
+
+The app view uses [App Bridge](https://shopify.dev/docs/api/app-bridge) and [Polaris](https://shopify.dev/docs/api/app-home/using-polaris-components) as recommended by Shopify.
+
+---
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
