@@ -25,9 +25,16 @@ class ShopifyAppService
      */
     public static function requestToShopifyReq(Request $request): array
     {
+        $headers = $request->headers->all();
+        foreach ($headers as $key => $value) {
+            if (is_array($value)) {
+                $headers[$key] = implode(',', $value);
+            }
+        }
+
         return [
             'method' => $request->method(),
-            'headers' => $request->headers->all(),
+            'headers' => $headers,
             'url' => $request->fullUrl(),
             'body' => $request->getContent(),
         ];

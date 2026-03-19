@@ -11,3 +11,20 @@ scopes = "write_products"
 
 [webhooks]
 api_version = "2025-01"
+
+# Mandatory for App Store: uninstall + GDPR webhooks
+[[webhooks.subscriptions]]
+topics = ["app/uninstalled"]
+uri = "/webhooks/app/uninstalled"
+
+[[webhooks.subscriptions]]
+topics = ["customers/data_request"]
+uri = "/webhooks/gdpr/customers/data_request"
+
+[[webhooks.subscriptions]]
+topics = ["customers/redact"]
+uri = "/webhooks/gdpr/customers/redact"
+
+[[webhooks.subscriptions]]
+topics = ["shop/redact"]
+uri = "/webhooks/gdpr/shop/redact"

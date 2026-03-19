@@ -22,6 +22,8 @@ class Shop extends Model
         'expires_at' => 'datetime',
         'refresh_token_expires_at' => 'datetime',
         'user' => 'array',
+        'token' => 'encrypted',
+        'refresh_token' => 'encrypted',
     ];
 
     /**

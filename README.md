@@ -34,11 +34,44 @@ This project is set up as a **Laravel Shopify app** using the [shopify-app-php](
 
 - **App Home** – Embedded app at `/` with request verification, token exchange/refresh, and storage in `shops` table.
 - **Patch ID Token** – Route at `/auth/patch-id-token` for resilient token handling.
-- **Webhook** – `POST /webhooks/app/uninstalled` to remove shop data on uninstall.
+- **Session token auth** – Backend API protection via `Authorization: Bearer <session_token>`. Use the frontend `authenticatedFetch` helper for all API calls from the embedded app. Protected route example: `GET /api/ping` returns `shop` and `userId`.
+- **Webhooks** – Mandatory subscriptions (HMAC verified):
+  - `POST /webhooks/app/uninstalled` – removes shop/token records on uninstall.
+  - `POST /webhooks/gdpr/customers/data_request` – log only (no customer data stored by default).
+  - `POST /webhooks/gdpr/customers/redact` – log only.
+  - `POST /webhooks/gdpr/shop/redact` – deletes shop/token records.
 - **Config** – `config/shopify.php` and `.env` vars: `SHOPIFY_API_KEY`, `SHOPIFY_API_SECRET`, `SHOPIFY_API_VERSION`.
-- **Shop model** – Stores offline (and optionally online) access tokens; use `Shop::fromShopAndMode($shop, 'offline')` and `$model->toAccessTokenArray()` for GraphQL/API calls.
+- **Shop model** – Stores offline (and optionally online) access tokens (encrypted at rest); use `Shop::fromShopAndMode($shop, 'offline')` and `$model->toAccessTokenArray()` for GraphQL/API calls.
 
-The app view uses [App Bridge](https://shopify.dev/docs/api/app-bridge) and [Polaris](https://shopify.dev/docs/api/app-home/using-polaris-components) as recommended by Shopify.
+The app view uses [App Bridge](https://shopify.dev/docs/api/app-bridge) (npm) and [Polaris](https://shopify.dev/docs/api/app-home/using-polaris-components) as recommended by Shopify.
+
+### Using the authenticated fetch helper
+
+From the embedded app frontend, use `authenticatedFetch` for any backend API call so the session token is sent:
+
+```javascript
+// window.authenticatedFetch is set by resources/js/shopify-auth-fetch.js
+const res = await window.authenticatedFetch('/api/ping');
+const data = await res.json(); // { shop, userId }
+```
+
+Protected API routes use the `shopify.session.token` middleware, which verifies the Bearer token and attaches `shop`, `userId`, and `idToken` to the request.
+
+### Shopify App Store review checklist
+
+Before submitting for distribution:
+
+- [ ] **Session tokens** – All backend API calls from the embedded app use session token auth (e.g. `authenticatedFetch`). No reliance on cookies for auth in the iframe.
+- [ ] **GDPR webhooks** – Subscriptions for `app/uninstalled`, `customers/data_request`, `customers/redact`, and `shop/redact` are configured in `shopify.app.toml` and implemented with HMAC verification and minimal compliant handling.
+- [ ] **Uninstall** – `app/uninstalled` and `shop/redact` delete shop and token records; responses are fast and do not block on external calls.
+
+### Production environment
+
+- **APP_ENV** – Set to `production`; **APP_DEBUG** – set to `false`.
+- **HTTPS** – App and webhook URLs must be served over HTTPS.
+- **Database** – Use a production database (e.g. MySQL/PostgreSQL); run migrations.
+- **Queues** – For heavy work, use queues (e.g. `php artisan queue:work`); webhook handlers should remain fast and synchronous for this baseline.
+- **Secrets** – Keep `APP_KEY`, `SHOPIFY_API_SECRET`, and `.env` secure; never commit secrets.
 
 ---
 

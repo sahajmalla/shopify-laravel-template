@@ -5,11 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="shopify-api-key" content="{{ $clientId }}">
     <title>{{ config('app.name') }} – App</title>
-    {{-- App Bridge – required for embedded apps (security & parent communication) --}}
-    <script
-        src="https://cdn.shopify.com/shopifycloud/app-bridge.js"
-        data-api-key="{{ $clientId }}"
-   ></script>
+    <script>window.ShopifyApiKey = {!! json_encode($clientId) !!};</script>
+    {{-- App Bridge + session-token fetch helper (npm bundle) --}}
+    @vite(['resources/js/shopify-auth-fetch.js'])
     {{-- Polaris Web Components – Shopify look and feel --}}
     <script src="https://cdn.shopify.com/shopifycloud/polaris.js"></script>
     <style>
@@ -24,6 +22,21 @@
         <h1>Welcome to your app</h1>
         <p>Shop: <strong>{{ $shop }}</strong></p>
         <p style="margin-top: 1rem;">This is your embedded app home. Add your UI and API calls here.</p>
+        <p style="margin-top: 1rem;">Protected API: <button type="button" id="ping-api">Ping /api/ping</button> <span id="ping-result"></span></p>
     </div>
+    <script>
+        document.getElementById('ping-api')?.addEventListener('click', function () {
+            var resultEl = document.getElementById('ping-result');
+            resultEl.textContent = '…';
+            if (typeof window.authenticatedFetch !== 'function') {
+                resultEl.textContent = 'authenticatedFetch not loaded';
+                return;
+            }
+            window.authenticatedFetch('{{ url("/api/ping") }}')
+                .then(function (r) { return r.json(); })
+                .then(function (data) { resultEl.textContent = 'OK: shop=' + data.shop + ', userId=' + data.userId; })
+                .catch(function (e) { resultEl.textContent = 'Error: ' + e.message; });
+        });
+    </script>
 </body>
 </html>
