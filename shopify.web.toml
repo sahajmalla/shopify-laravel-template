@@ -6,4 +6,4 @@ roles = ["frontend", "backend"]
 webhooks_path = "/webhooks/app/uninstalled"
 
 [commands]
-dev = "php artisan serve --port=${PORT:-8000}"
+dev = "php artisan serve"
