@@ -7,22 +7,22 @@
 import createApp from '@shopify/app-bridge';
 import { authenticatedFetch as appBridgeAuthenticatedFetch } from '@shopify/app-bridge-utils';
 
-function getHostFromUrl() {
-  if (typeof window === 'undefined' || !window.location.search) return '';
-  return new URLSearchParams(window.location.search).get('host') || '';
+function getHostFromUrl(): string {
+    if (typeof window === 'undefined' || !window.location.search) return '';
+    return new URLSearchParams(window.location.search).get('host') || '';
 }
 
 const apiKey = typeof window !== 'undefined' ? window.ShopifyApiKey : null;
 const host = getHostFromUrl();
 const app = apiKey ? createApp({ apiKey, host }) : null;
 
-const authenticatedFetch = app
-  ? appBridgeAuthenticatedFetch(app)
-  : function () {
-      return Promise.reject(
-        new Error('ShopifyApiKey not set; authenticatedFetch is only available in the embedded app.')
-      );
-    };
+const authenticatedFetch: (input: RequestInfo, init?: RequestInit) => Promise<Response> = app
+    ? appBridgeAuthenticatedFetch(app)
+    : function () {
+          return Promise.reject(
+              new Error('ShopifyApiKey not set; authenticatedFetch is only available in the embedded app.')
+          );
+      };
 
 export { authenticatedFetch };
 

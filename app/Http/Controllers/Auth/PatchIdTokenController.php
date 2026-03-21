@@ -8,9 +8,12 @@ use Illuminate\Http\Request;
 
 class PatchIdTokenController extends Controller
 {
-    public function __invoke(Request $request)
+    /**
+     * Shopify loads embedded apps without an id_token in some flows.
+     * This endpoint returns a patch page that fetches a fresh token and reloads the iframe.
+     */
+    public function __invoke(Request $request, ShopifyAppService $service)
     {
-        $service = app(ShopifyAppService::class);
         $shopify = $service->getShopify();
         $req = ShopifyAppService::requestToShopifyReq($request);
         $result = $shopify->appHomePatchIdToken($req);

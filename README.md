@@ -1,126 +1,114 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Shopify Laravel + Vue + Inertia Template
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+This template builds Shopify embedded apps using **App Bridge** and **Polaris web components** (recommended by Shopify).
 
-## Shopify App (Laravel template)
+## What this template gives you (low level)
 
-This project is set up as a **Laravel Shopify app** using the [shopify-app-php](https://github.com/Shopify/shopify-app-php) package.
+- `routes/web.php` defines embedded app pages (`/` and `/settings`).
+- `routes/api.php` is for backend API endpoints called from the UI.
+- `app/Http/Controllers/App/HomeController.php` renders the Home page.
+- `app/Http/Controllers/App/SettingsController.php` renders the Settings page.
+- `app/Services/AppHomePageService.php` verifies Shopify requests, refreshes tokens, and renders Inertia pages.
+- `resources/views/app.blade.php` is the Inertia root template.
+- `resources/js/app.js` boots the app and loads Inertia.
+- `resources/js/bootstrap/inertia.js` wires Inertia + `shopify:navigate`.
+- `resources/js/layouts/AppLayout.vue` is the shared layout (App Nav + page slot). For App Bridge web components navigation, use: https://shopify.dev/docs/api/app-home/app-bridge-web-components/app-nav
+- `resources/js/pages/**/Index.vue` are page components.
+- `resources/js/services/shopify/authenticatedFetch.ts` wraps App Bridge `authenticatedFetch`.
+- `resources/js/composables/useAuthenticatedFetch.ts` exposes it with Vue state.
+- Backend API routes use the `shopify.session.token` middleware for session token validation.
+- Core package: `shopify/shopify-app-php` (GitHub: https://github.com/Shopify/shopify-app-php).
 
-### Setup
+## Why this helps you build faster
 
-1. **Install Shopify CLI** (if needed):
-   ```bash
-   npm install -g @shopify/cli@latest
-   ```
+- The embedded app verification and token refresh are already wired.
+- You get a working Inertia layout with navigation, so adding pages is just creating a controller + Vue file.
+- Session-token auth is already set up for safe backend calls.
+- Webhook routes are already in place.
 
-2. **Configure environment** – copy `.env.example` to `.env`, then run:
-   ```bash
-   php artisan key:generate
-   ```
-   When you run `shopify app dev`, the CLI will inject `SHOPIFY_API_KEY` and `SHOPIFY_API_SECRET` into your env.
+## Local HTTPS for Shopify development
 
-3. **Run the app with Shopify CLI** (first time use `--reset`):
-   ```bash
-   shopify app dev --reset
-   ```
-   This starts your Laravel server, opens a tunnel, and lets you install the app on a development store.
+Shopify requires HTTPS for embedded apps. Two common local HTTPS options:
 
-### What’s included
+- Laravel Valet (macOS): https://laravel.com/docs/valet
+- Laravel Herd (macOS/Windows): https://herd.laravel.com
 
-- **App Home** – Embedded app at `/` with request verification, token exchange/refresh, and storage in `shops` table.
-- **Patch ID Token** – Route at `/auth/patch-id-token` for resilient token handling.
-- **Session token auth** – Backend API protection via `Authorization: Bearer <session_token>`. Use the frontend `authenticatedFetch` helper for all API calls from the embedded app. Protected route example: `GET /api/ping` returns `shop` and `userId`.
-- **Webhooks** – Mandatory subscriptions (HMAC verified):
-  - `POST /webhooks/app/uninstalled` – removes shop/token records on uninstall.
-  - `POST /webhooks/gdpr/customers/data_request` – log only (no customer data stored by default).
-  - `POST /webhooks/gdpr/customers/redact` – log only.
-  - `POST /webhooks/gdpr/shop/redact` – deletes shop/token records.
-- **Config** – `config/shopify.php` and `.env` vars: `SHOPIFY_API_KEY`, `SHOPIFY_API_SECRET`, `SHOPIFY_API_VERSION`.
-- **Shop model** – Stores offline (and optionally online) access tokens (encrypted at rest); use `Shop::fromShopAndMode($shop, 'offline')` and `$model->toAccessTokenArray()` for GraphQL/API calls.
+If you use Valet or Herd, set your `shopify.app.toml` `application_url` and `auth.redirect_urls` to your local HTTPS domain (for example, `https://your-app.test`).
 
-The app view uses [App Bridge](https://shopify.dev/docs/api/app-bridge) (npm) and [Polaris](https://shopify.dev/docs/api/app-home/using-polaris-components) as recommended by Shopify.
+## Quick workflow
 
-### Using the authenticated fetch helper
+1. Add a controller that calls `AppHomePageService::render()`.
+2. Create a Vue page in `resources/js/pages/<Page>/Index.vue`.
+3. Add a route in `routes/web.php`.
+4. Update the nav in `resources/js/components/app/AppNav.vue` if needed.
+5. Call backend APIs with `window.authenticatedFetch`.
 
-From the embedded app frontend, use `authenticatedFetch` for any backend API call so the session token is sent:
+That is the minimal Shopify-compliant embedded app starting point.
 
-```javascript
-// window.authenticatedFetch is set by resources/js/shopify-auth-fetch.js
-const res = await window.authenticatedFetch('/api/ping');
-const data = await res.json(); // { shop, userId }
-```
+## Getting started (smooth run)
 
-Protected API routes use the `shopify.session.token` middleware, which verifies the Bearer token and attaches `shop`, `userId`, and `idToken` to the request.
-
-### Shopify App Store review checklist
-
-Before submitting for distribution:
-
-- [ ] **Session tokens** – All backend API calls from the embedded app use session token auth (e.g. `authenticatedFetch`). No reliance on cookies for auth in the iframe.
-- [ ] **GDPR webhooks** – Subscriptions for `app/uninstalled`, `customers/data_request`, `customers/redact`, and `shop/redact` are configured in `shopify.app.toml` and implemented with HMAC verification and minimal compliant handling.
-- [ ] **Uninstall** – `app/uninstalled` and `shop/redact` delete shop and token records; responses are fast and do not block on external calls.
-
-### Production environment
-
-- **APP_ENV** – Set to `production`; **APP_DEBUG** – set to `false`.
-- **HTTPS** – App and webhook URLs must be served over HTTPS.
-- **Database** – Use a production database (e.g. MySQL/PostgreSQL); run migrations.
-- **Queues** – For heavy work, use queues (e.g. `php artisan queue:work`); webhook handlers should remain fast and synchronous for this baseline.
-- **Secrets** – Keep `APP_KEY`, `SHOPIFY_API_SECRET`, and `.env` secure; never commit secrets.
-
----
-
-## About Laravel
-
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
-
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+1. Install dependencies.
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+composer install
+npm install
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+2. Create your local env file and app key.
 
-## Contributing
+```bash
+cp .env.example .env
+php artisan key:generate
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+3. Configure Shopify env vars in `.env`.
 
-## Code of Conduct
+Set:
+- `SHOPIFY_API_KEY` (from Shopify CLI `shopify app dev`)
+- `SHOPIFY_API_SECRET` (from Shopify CLI `shopify app dev`)
+- `SHOPIFY_API_VERSION` (match your desired Admin API version)
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+4. Update `shopify.app.toml` with your dev URL and app details.
 
-## Security Vulnerabilities
+Set:
+- `client_id`
+- `name`
+- `application_url` (must be HTTPS)
+- `[auth].redirect_urls` (at least one, HTTPS)
+- `[access_scopes].scopes`
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+5. Run migrations.
 
-## License
+```bash
+php artisan migrate
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+6. Start the app.
+
+Option A: run everything with the composer script:
+
+```bash
+composer dev
+```
+
+Option B: run in two terminals:
+
+```bash
+php artisan serve
+```
+
+```bash
+npm run dev
+```
+
+7. Start Shopify CLI and open the app in the admin.
+
+```bash
+shopify app dev
+```
+
+Follow the CLI prompt to open the embedded app.
+
+Notes:
+- Shopify requires HTTPS for embedded apps. Use Valet, Herd, or your own HTTPS tunnel.
+- This template focuses on App Home + token exchange. If you need OAuth callback handling, add your own `/api/auth` route and set it in `[auth].redirect_urls`.

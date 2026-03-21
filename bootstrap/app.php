@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\VerifyShopifySessionToken;
+use App\Http\Middleware\VerifyShopifyWebhook;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -16,8 +19,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'auth/patch-id-token',
             'webhooks/*',
         ]);
+        $middleware->web(append: [
+            HandleInertiaRequests::class,
+        ]);
         $middleware->alias([
-            'shopify.session.token' => \App\Http\Middleware\VerifyShopifySessionToken::class,
+            'shopify.session.token' => VerifyShopifySessionToken::class,
+            'shopify.webhook' => VerifyShopifyWebhook::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

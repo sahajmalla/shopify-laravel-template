@@ -2,10 +2,23 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class Shop extends Model
 {
+    /**
+     * Column reference:
+     * - shop: Shopify shop domain (e.g., example.myshopify.com)
+     * - access_mode: Token type ("offline" or "online")
+     * - user_id: Shopify merchant user ID for online tokens (null for offline)
+     * - token: Access token (encrypted at rest)
+     * - scope: Granted API scopes for the token
+     * - refresh_token: Refresh token for token exchange (encrypted at rest)
+     * - expires_at: Access token expiry timestamp (nullable)
+     * - refresh_token_expires_at: Refresh token expiry timestamp (nullable)
+     * - user: User payload for online tokens (JSON)
+     */
     protected $fillable = [
         'shop',
         'access_mode',
@@ -27,77 +40,30 @@ class Shop extends Model
     ];
 
     /**
-     * Convert model to the access token shape expected by shopify-app-php.
+     * Scope to a specific shop domain.
      */
-    public function toAccessTokenArray(): array
+    public function scopeForShop(Builder $query, string $shop): Builder
     {
-        return [
-            'shop' => $this->shop,
-            'accessMode' => $this->access_mode,
-            'token' => $this->token,
-            'scope' => $this->scope ?? '',
-            'refreshToken' => $this->refresh_token ?? '',
-            'expires' => $this->expires_at?->format('c'),
-            'refreshTokenExpires' => $this->refresh_token_expires_at?->format('c'),
-            'userId' => $this->user_id ?? '',
-            'user' => $this->user,
-        ];
+        return $query->where('shop', $shop);
     }
 
     /**
-     * Create or update a shop access token from the array shape returned by the package.
+     * Scope to an access mode (offline or online).
      */
-    public static function fromAccessTokenArray(array $data): self
+    public function scopeForAccessMode(Builder $query, string $accessMode = 'offline'): Builder
     {
-        $shop = $data['shop'] ?? '';
-        $accessMode = $data['accessMode'] ?? 'offline';
-        $userId = $data['userId'] ?? null;
-
-        $attributes = [
-            'shop' => $shop,
-            'access_mode' => $accessMode,
-            'user_id' => $userId ? (string) $userId : null,
-            'token' => $data['token'] ?? '',
-            'scope' => $data['scope'] ?? null,
-            'refresh_token' => $data['refreshToken'] ?? null,
-            'expires_at' => isset($data['expires']) ? $data['expires'] : null,
-            'refresh_token_expires_at' => isset($data['refreshTokenExpires']) ? $data['refreshTokenExpires'] : null,
-            'user' => $data['user'] ?? null,
-        ];
-
-        $instance = self::query()
-            ->where('shop', $shop)
-            ->where('access_mode', $accessMode)
-            ->where(
-                fn ($q) => $userId
-                    ? $q->where('user_id', (string) $userId)
-                    : $q->whereNull('user_id')
-            )
-            ->first();
-
-        if ($instance) {
-            $instance->update($attributes);
-            return $instance->fresh();
-        }
-
-        return self::query()->create($attributes);
+        return $query->where('access_mode', $accessMode);
     }
 
     /**
-     * Get the access token record for a shop and access mode (and optionally user for online).
+     * Scope to a Shopify user (online tokens) or null for offline tokens.
      */
-    public static function fromShopAndMode(string $shop, string $accessMode = 'offline', ?string $userId = null): ?self
+    public function scopeForUserId(Builder $query, ?string $userId): Builder
     {
-        $query = self::query()
-            ->where('shop', $shop)
-            ->where('access_mode', $accessMode);
-
-        if ($accessMode === 'online' && $userId !== null) {
-            $query->where('user_id', (string) $userId);
-        } else {
-            $query->whereNull('user_id');
+        if ($userId !== null && $userId !== '') {
+            return $query->where('user_id', (string) $userId);
         }
 
-        return $query->first();
+        return $query->whereNull('user_id');
     }
 }

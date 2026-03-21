@@ -1,13 +1,9 @@
-# Shopify app config. Run `shopify app dev --reset` to fill client_id and URLs.
-# See: https://shopify.dev/docs/api/shopify-cli#shopify-app-toml
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = ""
-name = "Laravel Shopify App"
-application_url = "https://your-app-url.com"
+name = ""
+application_url = "https://your-app-url.test"
 embedded = true
-
-[access_scopes]
-scopes = "write_products"
 
 [webhooks]
 api_version = "2026-04"
@@ -17,13 +13,23 @@ api_version = "2026-04"
   uri = "/webhooks/app/uninstalled"
 
   [[webhooks.subscriptions]]
-  compliance_topics = [ "customers/data_request" ]
   uri = "/webhooks/gdpr/customers/data_request"
+  compliance_topics = [ "customers/data_request" ]
 
   [[webhooks.subscriptions]]
-  compliance_topics = [ "customers/redact" ]
   uri = "/webhooks/gdpr/customers/redact"
+  compliance_topics = [ "customers/redact" ]
 
   [[webhooks.subscriptions]]
-  compliance_topics = [ "shop/redact" ]
   uri = "/webhooks/gdpr/shop/redact"
+  compliance_topics = [ "shop/redact" ]
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = ""
+
+[auth]
+redirect_urls = [ "your-app-url/api/auth" ]
+
+[build]
+automatically_update_urls_on_dev = false
