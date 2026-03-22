@@ -56,7 +56,22 @@ class AppHomePageService
             $refreshResult = $shopify->refreshTokenExchangedAccessToken($accessToken);
 
             if (! $refreshResult->ok) {
-                return ShopifyAppService::resultToResponse($refreshResult);
+                // Fallback: try a fresh token exchange using the current session token.
+                $exchangeResult = $shopify->exchangeUsingTokenExchange(
+                    accessMode: 'offline',
+                    idToken: $result->idToken,
+                    invalidTokenResponse: $result->newIdTokenResponse,
+                );
+
+                if (! $exchangeResult->ok) {
+                    return ShopifyAppService::resultToResponse($exchangeResult);
+                }
+
+                if ($exchangeResult->accessToken !== null) {
+                    $this->storeAccessToken(ShopAccessTokenData::fromTokenExchange($exchangeResult->accessToken));
+                }
+
+                return null;
             }
 
             if ($refreshResult->accessToken !== null) {
